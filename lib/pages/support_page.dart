@@ -10,6 +10,8 @@ class support_page extends StatefulWidget {
 class _support_pageState extends State<support_page> {
   @override
   Widget build(BuildContext context) {
-    return const Placeholder();
+    return Scaffold(
+      body: Text('Hello World')
+    );
   }
 }
