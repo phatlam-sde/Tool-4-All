@@ -1,0 +1,36 @@
+# Secrets / private keys
+.env
+*.env
+AI_API_KEY*
+*firebase-adminsdk*.json
+serviceAccountKey.json
+google-credentials.json
+
+# Python backend
+backend/.venv/
+backend/venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+coverage/
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+
+# VS Code
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Local cache
+.e4mc_cache/
