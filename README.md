@@ -1,16 +1,26 @@
-# tool4all
+# Tool4All
 
-A new Flutter project.
+Tool4All is a Flutter + FastAPI app that helps users find useful tools for a task.
 
-## Getting Started
+## Tech Stack
 
-This project is a starting point for a Flutter application.
+- Flutter frontend
+- FastAPI backend
+- Firestore database
+- Gemini AI for tool recommendations
 
-A few resources to get you started if this is your first Flutter project:
+## Features
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+- Search for tools using AI
+- Quick Action cards
+- Tool results page
+- Popular tools section
+- Tutorials page placeholder
+- Support page placeholder
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Backend Setup
+
+```bash
+cd backend
+pip install -r requirements.txt
+uvicorn app.main:app --reload
