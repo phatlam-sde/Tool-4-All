@@ -242,4 +242,21 @@ class ApiClient {
     // Convert the JSON response body into a Dart List.
     return jsonDecode(res.body) as List<dynamic>;
   }
+
+  Future<List<dynamic>> getPopularTools({
+    int limit = 5,
+    int minPopularity = 70,
+  })async{
+    final uri = Uri.parse('$baseUrl/popularTools').replace(
+      queryParameters:{
+        'limit': '$limit',
+        'min_popularity': '$minPopularity'
+      },
+    );
+    final res = await http.get(uri);
+    if(res.statusCode !=200){
+      throw Exception('popularTools failed: ${res.statusCode} ${res.body}');
+    }
+    return jsonDecode(res.body) as List<dynamic>;
+  }
 }

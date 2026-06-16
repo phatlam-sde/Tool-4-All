@@ -1,41 +1,58 @@
-/// Represents one popular tool shown in the "POPULAR TOOLS" section
-/// on the search/home page.
-///
-/// This model is used only on the Flutter frontend right now.
-/// It stores the information needed to display a popular tool card.
+
 class PopularToolcard {
-  /// The icon key for the tool.
-  ///
-  /// This is not the actual Flutter icon.
-  /// It is a String that will be converted into an IconData using
-  /// the `getIcon()` function inside `search_page.dart`.
-  ///
-  /// Example:
-  /// ```dart
-  /// 'chat_bubble'
-  /// 'star'
-  /// 'code'
-  /// ```
+  final String toolId;
   final String toolImage;
-
-  /// The display name of the popular tool.
-  ///
-  /// This is the text shown on the popular tool card.
-  ///
-  /// Example:
-  /// ```dart
-  /// 'ChatGPT'
-  /// 'Jasper AI'
-  /// 'GitHub Copilot AI'
-  /// ```
   final String toolName;
+  final String shortDescription;
+  final String pricingModel;
+  final bool isActive;
+  final bool isPopular;
+  final List<String> platforms;
+  final String websiteUrl;
+  final int popularityHint;
+  final List<String> qualitySignals;
+  final List<String> tags;
+  final List<String> taskIds;
 
-  /// Creates a PopularToolcard object.
-  ///
-  /// Both [toolImage] and [toolName] are required because the card
-  /// needs an icon and a name to display correctly.
   PopularToolcard({
+    required this.toolId,
     required this.toolImage,
     required this.toolName,
+    required this.shortDescription,
+    required this.pricingModel,
+    required this.isActive,
+    required this.isPopular,
+    required this.platforms,
+    required this.websiteUrl,
+    required this.popularityHint,
+    required this.qualitySignals,
+    required this.tags,
+    required this.taskIds,
   });
+
+  factory PopularToolcard.fromJson(Map<String, dynamic> json) {
+    return PopularToolcard(
+      toolId: (json['toolId'] ?? '').toString(),
+      toolImage: (json['iconKey'] ?? 'smart_toy').toString(),
+      toolName: (json['name'] ?? json['toolId'] ?? '').toString(),
+      shortDescription: (json['shortDescription'] ?? '').toString(),
+      pricingModel: (json['pricingModel'] ?? '').toString(),
+      isActive: json['isActive'] == true,
+      isPopular: json['isPopular'] == true,
+      platforms: _toStringList(json['platforms']),
+      websiteUrl: (json['websiteUrl'] ?? '').toString(),
+      popularityHint: (json['popularityHint'] ?? 0) as int,
+      qualitySignals: _toStringList(json['qualitySignals']),
+      tags: _toStringList(json['tags']),
+      taskIds: _toStringList(json['taskIds']),
+    );
+  }
+
+  static List<String> _toStringList(dynamic value) {
+    if (value is List) {
+      return value.map((item) => item.toString()).toList();
+    }
+
+    return [];
+  }
 }

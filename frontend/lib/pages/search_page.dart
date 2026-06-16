@@ -5,20 +5,19 @@ import 'package:tool4all/api/api_client.dart';
 import 'package:tool4all/models/PopularToolCard.dart';
 import 'package:tool4all/models/QuickActionCard.dart';
 import 'package:tool4all/pages/tools_results_page.dart';
+import 'package:tool4all/pages/tool_detail_page.dart';
+import 'package:tool4all/pages/tools_preview_card.dart';
 
-/// Main search/home page for Tool4All.
+/// Search/home page for Tool4All.
 ///
-/// This page has two modes:
-/// 1. Home mode: shows quick actions and popular tools.
-/// 2. Search mode: shows AI recommended tools based on what the user types.
-///
-/// The page needs an [ApiClient] so it can talk to FastAPI backend.
+/// Shows:
+/// - Quick Actions from backend
+/// - Popular Tools from backend
+/// - AI search results when the user types
 class search_page extends StatefulWidget {
   const search_page({super.key, required this.api});
 
-  /// API client used to call backend routes such as:
-  /// - GET /quick-actions
-  /// - POST /tools/recommend
+  /// Used to call the backend.
   final ApiClient api;
 
   @override
@@ -27,87 +26,47 @@ class search_page extends StatefulWidget {
 
 class _search_pageState extends State<search_page> {
   // ---------------------------------------------------------------------------
-  // Controllers and timers
+  // Search input state
   // ---------------------------------------------------------------------------
 
-  /// Controls the text inside the search box.
-  ///
-  /// This lets us clear the actual text field when the user taps the back arrow.
   final TextEditingController _searchController = TextEditingController();
-
-  /// Debounce timer for search.
-  ///
-  /// Without this, the app would call the backend on every typed character.
-  /// With this timer, the app waits briefly after the user stops typing.
   Timer? _searchDebounce;
 
-  // ---------------------------------------------------------------------------
-  // Search state
-  // ---------------------------------------------------------------------------
-
-  /// True when the search box has text.
-  ///
-  /// When true, the page shows AI search results.
-  /// When false, the page shows quick actions and popular tools.
   bool isSearching = false;
-
-  /// Current text typed by the user.
   String searchQuery = '';
 
   // ---------------------------------------------------------------------------
-  // Quick action state
+  // Quick Actions state
   // ---------------------------------------------------------------------------
 
-  /// Quick actions loaded from the backend.
   List<QuickActionItems> quickActionList = [];
-
-  /// True while the app is loading quick actions from the backend.
   bool isLoadingQuickActions = true;
-
-  /// Stores an error message if quick actions fail to load.
   String? quickActionsError;
 
   // ---------------------------------------------------------------------------
-  // AI search state
+  // Popular Tools state
   // ---------------------------------------------------------------------------
 
-  /// Search results returned by the backend AI recommendation route.
+  List<PopularToolcard> popularToolList = [];
+  bool isLoadingPopularTools = true;
+  String? popularToolsError;
+
+  // ---------------------------------------------------------------------------
+  // AI Search state
+  // ---------------------------------------------------------------------------
+
   List<dynamic> aiResults = [];
-
-  /// True while waiting for AI search results.
   bool isLoadingAiResults = false;
-
-  /// Stores an error message if AI search fails.
   String? aiSearchError;
 
-  /// Used to ignore old search responses.
-  ///
-  /// Example:
-  /// - User searches "write".
-  /// - User quickly changes it to "write resume".
-  /// - The old "write" request finishes after the new request.
-  ///
-  /// This number helps the app ignore the old response.
+  /// Used to ignore old search results if the user types a new query.
   int _searchRequestId = 0;
 
   // ---------------------------------------------------------------------------
-  // Static page data
+  // Icon mapping
   // ---------------------------------------------------------------------------
 
-  /// Popular tools shown on the home page.
-  ///
-  /// These are currently hard-coded. Later, you can load them from the backend.
-  final List<PopularToolcard> popularToolList = [
-    PopularToolcard(toolImage: 'chat_bubble', toolName: 'ChatGPT'),
-    PopularToolcard(toolImage: 'star', toolName: 'Jasper AI'),
-    PopularToolcard(toolImage: 'chat_bubble', toolName: 'GitHub Copilot AI'),
-  ];
-
-  /// Converts icon names from the backend into real Flutter icons.
-  ///
-  /// Example:
-  /// Backend sends: "code"
-  /// Flutter displays: Icons.code
+  /// Converts backend icon keys into Flutter icons.
   static const Map<String, IconData> _iconMap = {
     'chat_bubble': Icons.chat_bubble,
     'folder': Icons.folder,
@@ -132,26 +91,23 @@ class _search_pageState extends State<search_page> {
     'edit_note': Icons.edit_note,
   };
 
-  /// Returns the matching icon for a string key.
-  ///
-  /// If the key does not exist, it uses Icons.help as a fallback.
+  /// Returns the matching icon, or a help icon if unknown.
   IconData _getIcon(String key) => _iconMap[key] ?? Icons.help;
 
   // ---------------------------------------------------------------------------
-  // Lifecycle methods
+  // Lifecycle
   // ---------------------------------------------------------------------------
 
   @override
   void initState() {
     super.initState();
 
-    // Load quick actions as soon as this page opens.
     _loadQuickActions();
+    _loadPopularTools();
   }
 
   @override
   void dispose() {
-    // Always clean up controllers and timers when the page is removed.
     _searchDebounce?.cancel();
     _searchController.dispose();
     super.dispose();
@@ -161,10 +117,7 @@ class _search_pageState extends State<search_page> {
   // Backend calls
   // ---------------------------------------------------------------------------
 
-  /// Loads quick action tasks from the backend.
-  ///
-  /// Expected backend route:
-  /// GET /quick-actions
+  /// Loads Quick Action cards from GET /quick-actions.
   Future<void> _loadQuickActions() async {
     setState(() {
       isLoadingQuickActions = true;
@@ -195,18 +148,41 @@ class _search_pageState extends State<search_page> {
     }
   }
 
-  /// Sends the user's query to the backend AI recommendation route.
-  ///
-  /// Expected backend route:
-  /// POST /tools/recommend
-  ///
-  /// The backend should return a list of tools with fields like:
-  /// - name
-  /// - toolId
-  /// - shortDescription
-  /// - reason
-  /// - score
-  /// - pricingModel
+  /// Loads Popular Tools from GET /popularTools.
+  Future<void> _loadPopularTools() async {
+    setState(() {
+      isLoadingPopularTools = true;
+      popularToolsError = null;
+    });
+
+    try {
+      final list = await widget.api.getPopularTools(
+        limit: 5,
+        minPopularity: 70,
+      );
+
+      final items = list
+          .map((e) => PopularToolcard.fromJson(e as Map<String, dynamic>))
+          .where((tool) => tool.toolId.isNotEmpty)
+          .toList();
+
+      if (!mounted) return;
+
+      setState(() {
+        popularToolList = items;
+        isLoadingPopularTools = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        popularToolsError = e.toString();
+        isLoadingPopularTools = false;
+      });
+    }
+  }
+
+  /// Sends the user's query to POST /tools/recommend.
   Future<void> _searchWithAI(String query) async {
     final int currentRequestId = ++_searchRequestId;
 
@@ -222,7 +198,6 @@ class _search_pageState extends State<search_page> {
         limit: 5,
       );
 
-      // Do not update the screen if this page is gone or this response is old.
       if (!mounted || currentRequestId != _searchRequestId) return;
 
       setState(() {
@@ -230,7 +205,6 @@ class _search_pageState extends State<search_page> {
         isLoadingAiResults = false;
       });
     } catch (e) {
-      // Do not show errors from old requests.
       if (!mounted || currentRequestId != _searchRequestId) return;
 
       setState(() {
@@ -241,13 +215,10 @@ class _search_pageState extends State<search_page> {
   }
 
   // ---------------------------------------------------------------------------
-  // Search input handlers
+  // Search handlers
   // ---------------------------------------------------------------------------
 
-  /// Runs whenever the user types in the search box.
-  ///
-  /// This updates the local search text immediately, then waits 800ms before
-  /// calling the backend. That delay is called a debounce.
+  /// Runs when the user types in the search box.
   void _onSearchChanged(String value) {
     final trimmedValue = value.trim();
 
@@ -256,22 +227,19 @@ class _search_pageState extends State<search_page> {
       isSearching = trimmedValue.isNotEmpty;
     });
 
-    // Cancel the previous timer because the user typed something new.
     _searchDebounce?.cancel();
 
-    // If the search box is empty, reset the search state.
     if (trimmedValue.isEmpty) {
       _clearSearchResultsOnly();
       return;
     }
 
-    // Wait briefly before searching so the backend is not called too often.
     _searchDebounce = Timer(const Duration(milliseconds: 800), () {
       _searchWithAI(trimmedValue);
     });
   }
 
-  /// Clears the whole search box and returns the page to home mode.
+  /// Clears the search box and returns to home mode.
   void _clearSearch() {
     _searchController.clear();
 
@@ -283,9 +251,7 @@ class _search_pageState extends State<search_page> {
     _clearSearchResultsOnly();
   }
 
-  /// Clears only the search results/loading/error state.
-  ///
-  /// This also makes any unfinished backend search response become outdated.
+  /// Clears search results and cancels old search requests.
   void _clearSearchResultsOnly() {
     _searchDebounce?.cancel();
     _searchRequestId++;
@@ -298,10 +264,40 @@ class _search_pageState extends State<search_page> {
   }
 
   // ---------------------------------------------------------------------------
-  // Small UI helpers
+  // Reusable UI helpers
   // ---------------------------------------------------------------------------
 
-  /// Background image for the whole page.
+  Widget _buildLoadingBox() {
+    return const Padding(
+      padding: EdgeInsets.all(16),
+      child: Center(child: CircularProgressIndicator()),
+    );
+  }
+
+  Widget _buildMessageBox(String message) {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Text(message),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontWeight: FontWeight.bold,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Header and search bar
+  // ---------------------------------------------------------------------------
+
   Widget _buildBackground() {
     return Container(
       decoration: const BoxDecoration(
@@ -313,7 +309,6 @@ class _search_pageState extends State<search_page> {
     );
   }
 
-  /// Top area containing the app bar and subtitle.
   Widget _buildHeader() {
     return Column(
       children: [
@@ -353,7 +348,6 @@ class _search_pageState extends State<search_page> {
     );
   }
 
-  /// Search input field.
   Widget _buildSearchBar() {
     return Padding(
       padding: const EdgeInsets.all(10),
@@ -381,31 +375,11 @@ class _search_pageState extends State<search_page> {
     );
   }
 
-  /// Reusable title for sections like QUICK ACTIONS and POPULAR TOOLS.
-  Widget _buildSectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontWeight: FontWeight.bold,
-          letterSpacing: 0.5,
-        ),
-      ),
-    );
-  }
-
   // ---------------------------------------------------------------------------
-  // Search result UI
+  // Search results UI
   // ---------------------------------------------------------------------------
 
   /// Builds the AI search result area.
-  ///
-  /// This method decides which search UI to show:
-  /// - loading spinner
-  /// - error message
-  /// - no results message
-  /// - list of recommended tools
   Widget _buildSearchResults() {
     if (isLoadingAiResults) {
       return const Expanded(
@@ -418,20 +392,12 @@ class _search_pageState extends State<search_page> {
           ? 'Gemini rate limit reached. Wait about 30 seconds, then try again.'
           : 'Error: $aiSearchError';
 
-      return Expanded(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Text(message),
-        ),
-      );
+      return Expanded(child: _buildMessageBox(message));
     }
 
     if (aiResults.isEmpty) {
       return Expanded(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Text('No tools found for "$searchQuery"'),
-        ),
+        child: _buildMessageBox('No tools found for "$searchQuery"'),
       );
     }
 
@@ -479,7 +445,7 @@ class _search_pageState extends State<search_page> {
   // Home content UI
   // ---------------------------------------------------------------------------
 
-  /// Builds the home content shown when the user is not searching.
+  /// Builds the home screen content.
   Widget _buildHomeContent() {
     return Expanded(
       child: SingleChildScrollView(
@@ -498,29 +464,18 @@ class _search_pageState extends State<search_page> {
     );
   }
 
-  /// Builds the quick actions section.
-  ///
-  /// This section is loaded from the backend.
+  /// Builds the Quick Actions section.
   Widget _buildQuickActionsSection() {
     if (isLoadingQuickActions) {
-      return const Padding(
-        padding: EdgeInsets.all(16),
-        child: Center(child: CircularProgressIndicator()),
-      );
+      return _buildLoadingBox();
     }
 
     if (quickActionsError != null) {
-      return Padding(
-        padding: const EdgeInsets.all(16),
-        child: Text('Error: $quickActionsError'),
-      );
+      return _buildMessageBox('Error: $quickActionsError');
     }
 
     if (quickActionList.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.all(16),
-        child: Text('No quick actions available.'),
-      );
+      return _buildMessageBox('No quick actions available.');
     }
 
     final itemCount = quickActionList.length > 4 ? 4 : quickActionList.length;
@@ -541,9 +496,7 @@ class _search_pageState extends State<search_page> {
     );
   }
 
-  /// Builds one quick action card.
-  ///
-  /// When tapped, it opens [ToolsResultsPage] and passes the task id.
+  /// Builds one Quick Action card.
   Widget _buildQuickActionCard(QuickActionItems item) {
     return Card(
       color: Colors.white.withOpacity(0.2),
@@ -579,44 +532,59 @@ class _search_pageState extends State<search_page> {
     );
   }
 
-  /// Builds the full popular tools section.
-  ///
-  /// These tools are currently hard-coded in [popularToolList].
+  /// Builds the Popular Tools section.
   Widget _buildPopularToolsSection() {
+    if (isLoadingPopularTools) {
+      return _buildLoadingBox();
+    }
+
+    if (popularToolsError != null) {
+      return _buildMessageBox('Error: $popularToolsError');
+    }
+
+    if (popularToolList.isEmpty) {
+      return _buildMessageBox('No popular tools available.');
+    }
+
     return Column(
       children: popularToolList.map(_buildPopularToolCard).toList(),
     );
   }
 
-  /// Builds one popular tool card.
+  /// Builds one Popular Tool card.
+  ///
+  /// When tapped, it opens ToolDetailPage.
   Widget _buildPopularToolCard(PopularToolcard item) {
-    return Card(
-      color: Colors.white.withOpacity(0.2),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.all(Radius.circular(10)),
-        side: BorderSide(color: Colors.grey, width: 1),
-      ),
-      child: InkWell(
-        onTap: () {
-          debugPrint('Clicked ${item.toolName}');
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Row(
-            children: [
-              Icon(_getIcon(item.toolImage), size: 40),
-              const SizedBox(width: 12),
-              Expanded(child: Text(item.toolName)),
-              const Icon(Icons.arrow_circle_right_outlined),
-            ],
+    return ToolPreviewCard(
+      toolName: item.toolName,
+      iconKey: item.toolImage,
+      shortDescription: item.shortDescription,
+      pricingModel: item.pricingModel,
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ToolDetailPage(
+              toolId: item.toolId,
+              toolName: item.toolName,
+              toolImage: item.toolImage,
+              shortDescription: item.shortDescription,
+              pricingModel: item.pricingModel,
+              isActive: item.isActive,
+              isPopular: item.isPopular,
+              platforms: item.platforms,
+              websiteUrl: item.websiteUrl,
+              popularityHint: item.popularityHint,
+              taskIds: item.taskIds,
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
   // ---------------------------------------------------------------------------
-  // Main page layout
+  // Main layout
   // ---------------------------------------------------------------------------
 
   @override
@@ -631,7 +599,7 @@ class _search_pageState extends State<search_page> {
                 _buildHeader(),
                 _buildSearchBar(),
 
-                // Switch between search results and home content.
+                // Shows search results when typing, otherwise home content.
                 if (isSearching) _buildSearchResults() else _buildHomeContent(),
               ],
             ),

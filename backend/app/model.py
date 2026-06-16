@@ -154,6 +154,14 @@ class ToolOut(BaseModel):
     # it from Firestore.
     isActive: bool = True
 
+    #Show if this tool is popular
+    #
+    #If it is not popular, it will hide it from popular tool search
+    isPopular: bool = False
+
+    #Quanity of how popular the tool is
+    #
+    popularityHint: int = 0
 
 # ---------------------------------------------------------------------
 # Recommendation Request Model
@@ -249,3 +257,8 @@ class RecommendedToolOut(ToolOut):
     # Example:
     # "Good for writing resumes and improving wording."
     reason: str
+
+class PopularTools(ToolOut):
+    iconKey: str = "smart_toy"
+    isPopular: bool = False
+    popularityHint: int = 0

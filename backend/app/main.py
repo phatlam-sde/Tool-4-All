@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException, Query
 from typing import List, Optional
 
 from app.firestore import get_db
-from app.model import TaskOut, ToolOut, RecommendToolsRequest, RecommendedToolOut
+from app.model import TaskOut, ToolOut, RecommendToolsRequest, RecommendedToolOut, PopularTools
 from app.ai_service import rank_tools_with_gemini
 
 
@@ -35,7 +35,6 @@ def health():
     http://127.0.0.1:8000/health
     """
     return {"status": "Ok"}
-
 
 # ---------------------------------------------------------------------
 # Task Routes
@@ -122,6 +121,73 @@ def quick_actions():
     # Return only the top 4 tasks for the home/search page.
     return tasks[:4]
 
+# ---------------------------------------------------------------------
+# Popular Tool Routes
+# ---------------------------------------------------------------------
+@app.get("/popularTools", response_model=List[ToolOut])
+def get_popular_tools(
+    limit: int = Query(default=5, ge=1, le=8),
+    min_popularity: int = Query(default=70, ge=0, le=100),
+):
+    """
+    Returns popular tools for the home page.
+
+    A tool is returned only if:
+    - isActive is True
+    - isPopular is True
+    - popularityHint is at least min_popularity
+
+    The tools are sorted from highest popularityHint to lowest.
+    """
+
+    # Connect to Firestore.
+    db = get_db()
+
+    # Get tools that are active and marked as popular.
+    q = (
+        db.collection("tools")
+        .where("isActive", "==", True)
+        .where("isPopular", "==", True)
+    )
+
+    # This list will store the popular tools we want to return.
+    popularTools: List[ToolOut] = []
+
+    # Loop through each matching Firestore document.
+    for doc in q.stream():
+        data = doc.to_dict() or {}
+
+        # Get the tool's popularity score.
+        # If the field does not exist, use 0.
+        popularity_hint = data.get("popularityHint", 0)
+
+        # Skip tools that are below the minimum popularity requirement.
+        if popularity_hint < min_popularity:
+            continue
+
+        # Convert the Firestore document into a ToolOut object.
+        popularTools.append(
+            ToolOut(
+                toolId=doc.id,
+                name=data.get("name", doc.id),
+                shortDescription=data.get("shortDescription"),
+                websiteUrl=data.get("websiteUrl"),
+                pricingModel=data.get("pricingModel"),
+                platforms=data.get("platforms", []),
+                taskIds=data.get("taskIds", []),
+                isActive=data.get("isActive", True),
+                iconKey=data.get("iconKey", "smart_toy"),
+                isPopular=data.get("isPopular", False),
+                popularityHint=popularity_hint,
+            )
+        )
+
+    # Sort tools so the most popular ones appear first.
+    popularTools.sort(key=lambda tool: tool.popularityHint, reverse=True)
+
+    # Return only the requested number of tools.
+    return popularTools[:limit]
+
 
 # ---------------------------------------------------------------------
 # Tool Routes
@@ -189,6 +255,7 @@ def tools_for_task(
             platforms=data.get("platforms", []),
             taskIds=data.get("taskIds", []),
             isActive=data.get("isActive", True),
+            popularityHint = data.get("popularityHint", 0)
         )
 
         # If the frontend requested a platform filter, skip tools
