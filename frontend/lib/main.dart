@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:tool4all/pages/search_page.dart';
-import 'package:tool4all/pages/tutorials_page.dart';
-import 'package:tool4all/pages/support_page.dart';
+//import 'package:tool4all/pages/tutorials_page.dart';
+//import 'package:tool4all/pages/support_page.dart';
 import 'package:tool4all/api/api_client.dart';
 
 /// The starting point of the Flutter app.
@@ -105,7 +105,7 @@ class _MainPageState extends State<MainPage> {
   /// IndexedStack keeps all pages alive, but only displays one page at a time.
   /// This is useful because the Search page will not reset every time the user
   /// switches to Tutorial or Support.
-  @override
+  /*@override
   Widget build(BuildContext context) {
     return Scaffold(
       /// Displays the currently selected page.
@@ -154,5 +154,9 @@ class _MainPageState extends State<MainPage> {
         ],
       ),
     );
+  }*/
+  @override
+  Widget build(BuildContext context){
+    return search_page(api: api);
   }
 }
