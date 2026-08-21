@@ -1,4 +1,4 @@
-package com.example.tool4all
+package com.phatlam.tool4all
 
 import io.flutter.embedding.android.FlutterActivity
 
