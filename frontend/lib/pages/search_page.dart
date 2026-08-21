@@ -197,7 +197,11 @@ class _search_pageState extends State<search_page> {
         platforms: ['web'],
         limit: 5,
       );
-
+      //debug
+      for (final tool in results) {
+        debugPrint('Name: ${tool['name']}');
+        debugPrint('Popularity: ${tool['popularityHint']}');
+      }
       if (!mounted || currentRequestId != _searchRequestId) return;
 
       setState(() {
@@ -435,7 +439,24 @@ class _search_pageState extends State<search_page> {
         subtitle: subtitleLines.isEmpty ? null : Text(subtitleLines.join('\n')),
         trailing: const Icon(Icons.arrow_forward),
         onTap: () {
-          debugPrint('Clicked $name');
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ToolDetailPage(
+                toolId: tool['toolId'] ?? '',
+                toolImage: tool['iconKey'] ?? 'smart_toy',
+                toolName: tool['name'] ?? '',
+                shortDescription: tool['shortDescription'] ?? '',
+                pricingModel: tool['pricingModel'] ?? '',
+                isActive: tool['isActive'] == true,
+                isPopular: tool['isPopular'] == true,
+                platforms: List<String>.from(tool['platforms'] ?? []),
+                websiteUrl: tool['websiteUrl'] ?? '',
+                popularityHint: int.tryParse((tool['popularityHint'] ?? 0).toString(),) ?? 0,
+                taskIds: List<String>.from(tool['taskIds']?? []),
+              )
+            )
+          );
         },
       ),
     );

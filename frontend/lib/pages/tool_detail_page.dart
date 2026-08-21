@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import 'package:url_launcher/url_launcher.dart';
 /// Shows the full details for one selected tool.
 ///
 /// This page receives tool data from the previous page.
@@ -101,20 +101,23 @@ class ToolDetailPage extends StatelessWidget {
                 const Divider(height: 1),
                 Padding(
                   padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.open_in_new, size: 18),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          websiteUrl,
-                          style: const TextStyle(
-                            color: Colors.blue,
-                            fontWeight: FontWeight.w600,
+                  child: InkWell(
+                    onTap: () => _openWebsite(websiteUrl),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.open_in_new, size: 18),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            websiteUrl,
+                            style: const TextStyle(
+                              color: Colors.blue,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -259,5 +262,16 @@ class ToolDetailPage extends StatelessWidget {
       ),
       visualDensity: VisualDensity.compact,
     );
+  }
+
+  //Open link to the tool's website
+  Future<void> _openWebsite(String WebsiteUrl) async{
+    final Uri url = Uri.parse(WebsiteUrl);
+    if(!await launchUrl(
+      url,
+      mode: LaunchMode.externalApplication,
+    )){
+      throw Exception('Could not launch $url');
+    }
   }
 }

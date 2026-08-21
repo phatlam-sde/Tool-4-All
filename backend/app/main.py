@@ -381,6 +381,7 @@ def recommend_tools(request: RecommendToolsRequest):
             platforms=data.get("platforms", []),
             taskIds=data.get("taskIds", []),
             isActive=data.get("isActive", True),
+            popularityHint=data.get("popularityHint",0),
         )
 
         # If platforms were provided, keep only tools that match
