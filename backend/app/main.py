@@ -453,7 +453,7 @@ def recommend_tools(request: RecommendToolsRequest):
 
 """@app.get("/debug/tools")
 def debug_tools():
-    """
+    
     Debug route that returns raw tools from Firestore.
 
     This is useful while developing because it lets you check
@@ -477,7 +477,7 @@ def debug_tools():
     Important:
     This route is useful for development, but you may want to remove
     or protect it before deploying the app publicly.
-    """
+    
 
     db = get_db()
 
