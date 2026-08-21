@@ -451,7 +451,7 @@ def recommend_tools(request: RecommendToolsRequest):
 # Debug Route
 # ---------------------------------------------------------------------
 
-@app.get("/debug/tools")
+"""@app.get("/debug/tools")
 def debug_tools():
     """
     Debug route that returns raw tools from Firestore.
@@ -493,4 +493,4 @@ def debug_tools():
             }
         )
 
-    return result
+    return result"""
